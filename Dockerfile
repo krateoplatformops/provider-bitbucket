@@ -56,8 +56,7 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.vcs-ref=$LAST_COMMIT \
       org.label-schema.vendor=$VENDOR \
       org.label-schema.version=$VERSION \
-      org.label-schema.docker.schema-version="1.0" \
-      org.opencontainers.image.source $REPO_URL
+      org.label-schema.docker.schema-version="1.0"
 
 ARG METRICS_PORT
 ARG HEALTHZ_PORT
