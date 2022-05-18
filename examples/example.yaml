@@ -1,0 +1,11 @@
+apiVersion: bitbucket.krateo.io/v1alpha1
+kind: Repo
+metadata:
+  name: bitbucket-provider-example
+spec:
+  forProvider:
+    project: JXP
+    name: demo-repo
+    private: true
+  providerConfigRef:
+    name: bitbucket-provider-config

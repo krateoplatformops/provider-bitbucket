@@ -1,0 +1,10 @@
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: krateo-provider-bitbucket
+spec:
+  package: 'ghcr.io/krateoplatformops/provider-bitbucket:VERSION'
+  packagePullPolicy: IfNotPresent
+  packagePullSecrets:
+    - name: cr-token
+  

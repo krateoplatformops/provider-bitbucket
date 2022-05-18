@@ -1,0 +1,13 @@
+apiVersion: bitbucket.krateo.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: bitbucket-provider-config
+spec:
+  apiUrl: https://git-qa.ghb.intranet.redacted.eu
+  verbose: true
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: default
+      name: bitbucket-secret
+      key: token

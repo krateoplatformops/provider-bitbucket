@@ -1,0 +1,43 @@
+{
+    "slug": "test-repo-2",
+    "id": 690,
+    "name": "test-repo-2",
+    "hierarchyId": "35f8b0ce5761495a9fa6",
+    "scmId": "git",
+    "state": "AVAILABLE",
+    "statusMessage": "Available",
+    "forkable": true,
+    "project": {
+        "key": "JXP",
+        "id": 223,
+        "name": "JXP",
+        "description": "JXP provision by DevOps Team",
+        "public": false,
+        "type": "NORMAL",
+        "links": {
+            "self": [
+                {
+                    "href": "https://git-qa.ghb.intranet.redacted.eu/projects/JXP"
+                }
+            ]
+        }
+    },
+    "public": false,
+    "links": {
+        "clone": [
+            {
+                "href": "ssh://git@git-qa.ghb.intranet.unicreditgroup.eu/jxp/test-repo-2.git",
+                "name": "ssh"
+            },
+            {
+                "href": "https://git-qa.ghb.intranet.unicreditgroup.eu/scm/jxp/test-repo-2.git",
+                "name": "http"
+            }
+        ],
+        "self": [
+            {
+                "href": "https://git-qa.ghb.intranet.unicreditgroup.eu/projects/JXP/repos/test-repo-2/browse"
+            }
+        ]
+    }
+}

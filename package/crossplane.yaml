@@ -1,0 +1,12 @@
+apiVersion: meta.pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-bitbucket
+  annotations:
+    meta.crossplane.io/description: |
+      The Krateo PlatformOps Bitbucket provider creates a git repository on Bitbucket if does not exists.
+    # A 'human-friendly' name for this package.
+    friendly-name.meta.crossplane.io: "Krateo PlatformOps Bitbucket Provider"
+spec:
+  controller:
+    image: ghcr.io/krateoplatformops/provider-bitbucket:VERSION

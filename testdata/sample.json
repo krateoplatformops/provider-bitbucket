@@ -1,0 +1,6 @@
+{
+    "name":          "test-repo-2",
+      "public":        "false",
+      "auto_init":     true,
+      "defaultBranch": "main"
+  }
