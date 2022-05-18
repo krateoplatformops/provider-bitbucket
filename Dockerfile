@@ -30,8 +30,7 @@ COPY pkg/ pkg/
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o /bin/controller cmd/main.go && \
-    strip /bin/controller && \
-    /usr/local/bin/upx -9 /bin/controller
+    strip /bin/controller
 
 # Deployment environment
 # ----------------------
@@ -57,7 +56,8 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.vcs-ref=$LAST_COMMIT \
       org.label-schema.vendor=$VENDOR \
       org.label-schema.version=$VERSION \
-      org.label-schema.docker.schema-version="1.0"
+      org.label-schema.docker.schema-version="1.0" \
+      org.opencontainers.image.source $REPO_URL
 
 ARG METRICS_PORT
 ARG HEALTHZ_PORT
