@@ -9,4 +9,4 @@ metadata:
     friendly-name.meta.crossplane.io: "Krateo PlatformOps Bitbucket Provider"
 spec:
   controller:
-    image: ghcr.io/krateoplatformops/provider-bitbucket:VERSION
+    image: ghcr.io/krateoplatformops/provider-bitbucket-controller:VERSION

@@ -10,7 +10,7 @@ endif
 KIND_CLUSTER_NAME ?= local-dev
 KUBECONFIG ?= $(HOME)/.kube/config
 
-VERSION := $(shell git describe --dirty --always --tags | sed 's/-/./2' | sed 's/-/./2')
+VERSION := $(shell git describe --always --tags | sed 's/-/./2' | sed 's/-/./2')
 ifndef VERSION
 VERSION := 0.0.0
 endif
@@ -106,7 +106,7 @@ install.crossplane: ## Install Crossplane into the local KinD cluster
 	helm install crossplane --namespace crossplane-system crossplane-stable/crossplane
 
 .PHONY: install.provider
-install.provider: cr.secret ## Install this provider
+install.provider: ## Install this provider
 	@$(SED) 's/VERSION/$(VERSION)/g' ./examples/provider.yaml | $(KUBECTL) apply -f -
 
 .PHONY: example.secrets
