@@ -1,6 +1,6 @@
 module github.com/krateoplatformops/provider-bitbucket
 
-go 1.18
+go 1.17
 
 require (
 	github.com/Machiel/slugify v1.0.1

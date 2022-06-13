@@ -73,7 +73,7 @@ func (s *RepoService) Create(projectKey string, opts *Repository) error {
 		Pathf("/rest/api/1.0/%s/repos", projectKey).
 		Client(s.client).
 		Bearer(s.token).
-		BodyJSON(map[string]any{
+		BodyJSON(map[string]interface{}{
 			"name":          opts.Name,
 			"public":        opts.Public,
 			"auto_init":     true,
