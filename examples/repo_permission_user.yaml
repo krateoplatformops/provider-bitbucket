@@ -1,0 +1,11 @@
+apiVersion: bitbucket.krateo.io/v1alpha1
+kind: RepoPermissionUser
+metadata:
+  name: bitbucket-demo-repo-developer01
+spec:
+  forProvider:
+    project: JXP
+    repoSlug: demo-repo
+    user: developer01
+  providerConfigRef:
+    name: bitbucket-provider-config
