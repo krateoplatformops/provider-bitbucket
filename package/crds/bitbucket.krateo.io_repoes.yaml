@@ -27,6 +27,9 @@ spec:
     - jsonPath: .status.atProvider.repoSlug
       name: SLUG
       type: string
+    - jsonPath: .status.atProvider.state
+      name: STATE
+      type: string
     - jsonPath: .status.conditions[?(@.type=='Ready')].status
       name: READY
       priority: 1
@@ -189,6 +192,9 @@ spec:
                     type: string
                   repoSlug:
                     description: 'RepoSlug: the repository name slug.'
+                    type: string
+                  state:
+                    description: 'State: the repository state.'
                     type: string
                 type: object
               conditions:

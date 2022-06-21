@@ -23,15 +23,6 @@ func TestGetRepos(t *testing.T) {
 	repos := NewClient(co).Repos()
 
 	projectKey := "JXP"
-	ok, err := repos.Exists(projectKey, "test-krateo-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("exists: %t\n", ok)
-
-	if ok {
-		return
-	}
 	res, err := repos.Create(CreateRepoOpts{
 		Name:       "Test Krateo 1",
 		Public:     false,
@@ -78,36 +69,6 @@ func TestGetRepos(t *testing.T) {
 	}
 
 	t.Log(res)
-}
-
-func TestRepoNotExists(t *testing.T) {
-	dat, err := ioutil.ReadFile("../../../testdata/repo-not-exists.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.WriteHeader(http.StatusNotFound)
-		rw.Write(dat)
-	}))
-	defer server.Close()
-
-	co := &ClientOpts{
-		ApiBaseUrl: server.URL,
-		HttpClient: server.Client(),
-	}
-
-	projectKey := ""
-	ok, err := NewClient(co).Repos().Exists(projectKey, "test-krateo-1")
-	if err == nil {
-		t.Fatalf("expecting an error, got nil")
-	} else if want, got := "Repository does not exist.", err.Error(); want != got {
-		t.Fatalf("expecting error[%s], got [%s]", want, got)
-	}
-
-	if ok {
-		t.Fatalf("excpected repository exists: false")
-	}
 }
 
 func TestRepoAlreadyExists(t *testing.T) {

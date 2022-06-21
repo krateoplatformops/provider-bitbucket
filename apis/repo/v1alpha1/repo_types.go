@@ -26,6 +26,9 @@ type RepoObservation struct {
 
 	// RepoSlug: the repository name slug.
 	RepoSlug *string `json:"repoSlug,omitempty"`
+
+	// State: the repository state.
+	State *string `json:"state,omitempty"`
 }
 
 // A RepoSpec defines the desired state of a Repo.
@@ -45,6 +48,7 @@ type RepoStatus struct {
 // A Repo is a managed resource that represents a bitbucket repository
 // +kubebuilder:printcolumn:name="PROJECT",type="string",JSONPath=".status.atProvider.project"
 // +kubebuilder:printcolumn:name="SLUG",type="string",JSONPath=".status.atProvider.repoSlug"
+// +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status",priority=1
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status",priority=1
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"

@@ -73,6 +73,36 @@ type CreateRepoOpts struct {
 	ProjectKey    string
 }
 
+type GetRepoOpts struct {
+	ProjectKey string
+	RepoSlug   string
+}
+
+func (s *RepoService) Get(opts GetRepoOpts) (*Repository, error) {
+	resp := &Repository{}
+
+	err := requests.URL(s.apiBaseUrl).
+		Method(http.MethodGet).
+		Pathf("/rest/api/1.0/projects/%s/repos/%s", opts.ProjectKey, opts.RepoSlug).
+		Client(s.client).
+		Bearer(s.token).
+		AddValidator(ErrorHandler(200)).
+		ToJSON(resp).
+		Fetch(context.Background())
+	if err != nil {
+		var e StatusError
+		if errors.As(err, &e) {
+			if e.Code == 404 {
+				return nil, nil
+			}
+			return nil, fmt.Errorf(e.Error())
+		}
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (s *RepoService) Create(opts CreateRepoOpts) (*Repository, error) {
 	if opts.DefaultBranch == "" {
 		opts.DefaultBranch = "main"
@@ -154,24 +184,24 @@ func (s *RepoService) Init(opts RepoInitOpts) error {
 	return nil
 }
 
-func (s *RepoService) Exists(projectKey, slug string) (bool, error) {
+func (s *RepoService) Delete(projectKey, slug string) error {
 	err := requests.URL(s.apiBaseUrl).
-		Method(http.MethodGet).
+		Method(http.MethodDelete).
 		Pathf("/rest/api/1.0/projects/%s/repos/%s", projectKey, slug).
 		Client(s.client).
 		Bearer(s.token).
-		AddValidator(ErrorHandler(200)).
+		AddValidator(ErrorHandler(200, 202, 204)).
 		Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
 			if e.Code == 404 {
-				return false, nil
+				return nil
 			}
-			return false, fmt.Errorf(e.Error())
+			return fmt.Errorf(e.Error())
 		}
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
