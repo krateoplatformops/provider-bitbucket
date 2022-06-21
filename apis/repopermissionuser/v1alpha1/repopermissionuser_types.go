@@ -1,11 +1,8 @@
 package v1alpha1
 
 import (
-	"reflect"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type RepoPermissionUserParams struct {
@@ -79,16 +76,4 @@ type RepoPermissionUserList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []RepoPermissionUser `json:"items"`
-}
-
-// ComputeInstance type metadata.
-var (
-	RepoPermissionUserKind             = reflect.TypeOf(RepoPermissionUser{}).Name()
-	RepoPermissionUserGroupKind        = schema.GroupKind{Group: Group, Kind: RepoPermissionUserKind}.String()
-	RepoPermissionUserKindAPIVersion   = RepoPermissionUserKind + "." + SchemeGroupVersion.String()
-	RepoPermissionUserGroupVersionKind = SchemeGroupVersion.WithKind(RepoPermissionUserKind)
-)
-
-func init() {
-	SchemeBuilder.Register(&RepoPermissionUser{}, &RepoPermissionUserList{})
 }

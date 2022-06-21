@@ -107,8 +107,6 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	spec := cr.Spec.ForProvider.DeepCopy()
 
-	//slug := slugify.Slugify(spec.Name)
-
 	var repo *bitbucket.Repository
 
 	parts := strings.Split(meta.GetExternalName(cr), "/")

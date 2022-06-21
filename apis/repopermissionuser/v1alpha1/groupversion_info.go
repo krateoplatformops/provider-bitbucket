@@ -5,6 +5,8 @@
 package v1alpha1
 
 import (
+	"reflect"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
@@ -22,3 +24,14 @@ var (
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 )
+
+var (
+	RepoPermissionUserKind             = reflect.TypeOf(RepoPermissionUser{}).Name()
+	RepoPermissionUserGroupKind        = schema.GroupKind{Group: Group, Kind: RepoPermissionUserKind}.String()
+	RepoPermissionUserKindAPIVersion   = RepoPermissionUserKind + "." + SchemeGroupVersion.String()
+	RepoPermissionUserGroupVersionKind = SchemeGroupVersion.WithKind(RepoPermissionUserKind)
+)
+
+func init() {
+	SchemeBuilder.Register(&RepoPermissionUser{}, &RepoPermissionUserList{})
+}

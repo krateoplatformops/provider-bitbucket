@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	repov1alpha1 "github.com/krateoplatformops/provider-bitbucket/apis/repo/v1alpha1"
+	rpuv1alpha1 "github.com/krateoplatformops/provider-bitbucket/apis/repopermissionuser/v1alpha1"
 	bbv1alpha1 "github.com/krateoplatformops/provider-bitbucket/apis/v1alpha1"
 )
 
@@ -12,6 +13,7 @@ func init() {
 	AddToSchemes = append(AddToSchemes,
 		bbv1alpha1.SchemeBuilder.AddToScheme,
 		repov1alpha1.SchemeBuilder.AddToScheme,
+		rpuv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }
 

@@ -7,6 +7,6 @@ spec:
     project: JXP
     repoSlug: demo-repo
     user: dev1
-    permission: write
+    permission: read
   providerConfigRef:
     name: bitbucket-provider-config

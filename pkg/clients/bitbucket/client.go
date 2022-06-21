@@ -205,3 +205,94 @@ func (s *RepoService) Delete(projectKey, slug string) error {
 
 	return nil
 }
+
+type UserPermissionOpts struct {
+	ProjectKey string
+	RepoSlug   string
+	User       string
+	Permission string
+}
+
+func (s *RepoService) SetUserPermissions(opts UserPermissionOpts) error {
+	err := requests.URL(s.apiBaseUrl).
+		Method(http.MethodPut).
+		Pathf("/rest/api/1.0/projects/%s/repos/%s/permissions/users", opts.ProjectKey, opts.RepoSlug).
+		Param("name", opts.User).Param("permission", opts.Permission).
+		Client(s.client).
+		Bearer(s.token).
+		AddValidator(ErrorHandler(200, 204)).
+		Fetch(context.Background())
+	if err != nil {
+		var e StatusError
+		if errors.As(err, &e) {
+			if e.Code == 404 {
+				return nil
+			}
+			return fmt.Errorf(e.Error())
+		}
+		return err
+	}
+
+	return nil
+}
+
+type UserPermission struct {
+	User struct {
+		Name string `json:"name"`
+	}
+	Permission string `json:"permission"`
+}
+
+func (s *RepoService) GetUserPermissions(opts UserPermissionOpts) (*UserPermission, error) {
+	res := struct {
+		Values []UserPermission `json:"values,omitempty"`
+	}{}
+
+	err := requests.URL(s.apiBaseUrl).
+		Method(http.MethodGet).
+		Pathf("/rest/api/1.0/projects/%s/repos/%s/permissions/users", opts.ProjectKey, opts.RepoSlug).
+		Param("filter", opts.User).
+		Client(s.client).
+		Bearer(s.token).
+		AddValidator(ErrorHandler(200)).
+		ToJSON(&res).
+		Fetch(context.Background())
+	if err != nil {
+		var e StatusError
+		if errors.As(err, &e) {
+			if e.Code == 404 {
+				return nil, nil
+			}
+			return nil, fmt.Errorf(e.Error())
+		}
+		return nil, err
+	}
+
+	if len(res.Values) > 0 {
+		return &res.Values[0], nil
+	}
+	return nil, nil
+}
+
+func (s *RepoService) DeleteUserPermissions(opts UserPermissionOpts) error {
+	err := requests.URL(s.apiBaseUrl).
+		Method(http.MethodDelete).
+		Pathf("/rest/api/1.0/projects/%s/repos/%s/permissions/users", opts.ProjectKey, opts.RepoSlug).
+		Param("name", opts.User).
+		Client(s.client).
+		Bearer(s.token).
+		AddValidator(ErrorHandler(200, 204)).
+		Fetch(context.Background())
+	if err != nil {
+		var e StatusError
+		if errors.As(err, &e) {
+			if e.Code == 404 {
+				return nil
+			}
+			return fmt.Errorf(e.Error())
+		}
+		return err
+	}
+
+	return nil
+}
