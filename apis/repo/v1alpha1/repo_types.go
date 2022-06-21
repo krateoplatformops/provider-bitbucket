@@ -21,11 +21,11 @@ type RepoParams struct {
 }
 
 type RepoObservation struct {
-	// Url: repository URL.
-	Url *string `json:"url,omitempty"`
+	// Project: the project key
+	Project *string `json:"project,omitempty"`
 
-	// Private: whether the repository is private.
-	Private *bool `json:"private,omitempty"`
+	// RepoSlug: the repository name slug.
+	RepoSlug *string `json:"repoSlug,omitempty"`
 }
 
 // A RepoSpec defines the desired state of a Repo.
@@ -43,10 +43,13 @@ type RepoStatus struct {
 // +kubebuilder:object:root=true
 
 // A Repo is a managed resource that represents a bitbucket repository
-// +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
-// +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
+// +kubebuilder:printcolumn:name="PROJECT",type="string",JSONPath=".status.atProvider.project"
+// +kubebuilder:printcolumn:name="SLUG",type="string",JSONPath=".status.atProvider.repoSlug"
+// +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status",priority=1
+// +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status",priority=1
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,git}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,krateo,bitbucket}
 type Repo struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

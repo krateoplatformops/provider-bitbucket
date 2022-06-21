@@ -8,11 +8,10 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/workqueue"
 
+	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -20,7 +19,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	repov1alpha1 "github.com/krateoplatformops/provider-bitbucket/apis/repo/v1alpha1"
+	v1alpha1 "github.com/krateoplatformops/provider-bitbucket/apis/repo/v1alpha1"
 	"github.com/krateoplatformops/provider-bitbucket/pkg/clients"
 	"github.com/krateoplatformops/provider-bitbucket/pkg/clients/bitbucket"
 
@@ -29,43 +28,44 @@ import (
 
 const (
 	errNotRepo = "managed resource is not a repo custom resource"
+
+	reasonCannotCreate = "CannotCreateExternalResource"
+	reasonCreated      = "CreatedExternalResource"
 )
 
 // Setup adds a controller that reconciles Token managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
-	name := managed.ControllerName(repov1alpha1.RepoGroupKind)
+func Setup(mgr ctrl.Manager, o controller.Options) error {
+	name := managed.ControllerName(v1alpha1.RepoGroupKind)
 
-	opts := controller.Options{
-		RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
-	}
+	log := o.Logger.WithValues("controller", name)
 
-	log := l.WithValues("controller", name)
-
-	rec := managed.NewReconciler(mgr,
-		resource.ManagedKind(repov1alpha1.RepoGroupVersionKind),
+	r := managed.NewReconciler(mgr,
+		resource.ManagedKind(v1alpha1.RepoGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
 			kube:     mgr.GetClient(),
 			log:      log,
-			recorder: mgr.GetEventRecorderFor("Repo"),
+			recorder: mgr.GetEventRecorderFor(name),
+			clientFn: bitbucket.NewClient,
 		}),
 		managed.WithLogger(log),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(opts).
-		For(&repov1alpha1.Repo{}).
-		Complete(rec)
+		WithOptions(o.ForControllerRuntime()).
+		For(&v1alpha1.Repo{}).
+		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
 
 type connector struct {
 	kube     client.Client
 	log      logging.Logger
 	recorder record.EventRecorder
+	clientFn func(opts *bitbucket.ClientOpts) *bitbucket.Client
 }
 
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*repov1alpha1.Repo)
+	cr, ok := mg.(*v1alpha1.Repo)
 	if !ok {
 		return nil, errors.New(errNotRepo)
 	}
@@ -78,7 +78,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	return &external{
 		kube: c.kube,
 		log:  c.log,
-		cli:  bitbucket.NewClient(*cfg),
+		cli:  bitbucket.NewClient(cfg),
 		rec:  c.recorder,
 	}, nil
 }
@@ -93,7 +93,7 @@ type external struct {
 }
 
 func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*repov1alpha1.Repo)
+	cr, ok := mg.(*v1alpha1.Repo)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotRepo)
 	}
@@ -125,7 +125,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*repov1alpha1.Repo)
+	cr, ok := mg.(*v1alpha1.Repo)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotRepo)
 	}
@@ -133,15 +133,29 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	cr.SetConditions(xpv1.Creating())
 
 	spec := cr.Spec.ForProvider.DeepCopy()
-	err := e.cli.Repos().Create(spec.Project, &bitbucket.Repository{
-		Name:   spec.Name,
-		Public: !spec.Private,
+
+	repos := e.cli.Repos()
+	res, err := repos.Create(bitbucket.CreateRepoOpts{
+		Name:       spec.Name,
+		Public:     !spec.Private,
+		ProjectKey: spec.Project,
 	})
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	e.log.Debug("Repo created", "project", spec.Project, "name", spec.Name)
-	e.rec.Event(cr, corev1.EventTypeNormal, "RepoCreated", fmt.Sprintf("Repo '%s/%s' created", spec.Project, spec.Name))
+	e.log.Debug("Repo created", "project", spec.Project, "name", spec.Name, "slug", res.Slug)
+	e.rec.Event(cr, corev1.EventTypeNormal, reasonCreated, fmt.Sprintf("Repo '%s/%s' created", spec.Project, spec.Name))
+
+	err = repos.Init(bitbucket.RepoInitOpts{
+		ProjectKey: spec.Project,
+		RepoSlug:   res.Slug,
+		Title:      res.Description,
+	})
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	e.log.Debug("Repo initialized", "project", spec.Project, "name", spec.Name, "slug", res.Slug)
+	e.rec.Event(cr, corev1.EventTypeNormal, reasonCreated, fmt.Sprintf("Repo '%s/%s' initialized", spec.Project, spec.Name))
 
 	return managed.ExternalCreation{}, nil
 }

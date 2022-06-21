@@ -1,16 +1,15 @@
 package bitbucket
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 
 	"github.com/carlmjohnson/requests"
-)
-
-const (
-	defaultScmId = "krateo"
 )
 
 type ClientOpts struct {
@@ -27,7 +26,7 @@ type Client struct {
 }
 
 // NewClient returns a new Github Client
-func NewClient(opts ClientOpts) *Client {
+func NewClient(opts *ClientOpts) *Client {
 	res := &Client{
 		apiBaseUrl: opts.ApiBaseUrl,
 		httpClient: opts.HttpClient,
@@ -67,24 +66,87 @@ func newRepoService(httpClient *http.Client, apiBaseUrl, token string) *RepoServ
 	}
 }
 
-func (s *RepoService) Create(projectKey string, opts *Repository) error {
+type CreateRepoOpts struct {
+	Name          string
+	Public        bool
+	DefaultBranch string
+	ProjectKey    string
+}
+
+func (s *RepoService) Create(opts CreateRepoOpts) (*Repository, error) {
+	if opts.DefaultBranch == "" {
+		opts.DefaultBranch = "main"
+	}
+
+	resp := &Repository{}
+
 	err := requests.URL(s.apiBaseUrl).
 		Method(http.MethodPost).
-		Pathf("/rest/api/1.0/%s/repos", projectKey).
+		Pathf("/rest/api/1.0/projects/%s/repos", opts.ProjectKey).
 		Client(s.client).
 		Bearer(s.token).
 		BodyJSON(map[string]interface{}{
 			"name":          opts.Name,
 			"public":        opts.Public,
-			"auto_init":     true,
-			"defaultBranch": "main",
+			"defaultBranch": opts.DefaultBranch,
 		}).
 		AddValidator(ErrorHandler(201)).
+		ToJSON(resp).
 		Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
-			return fmt.Errorf(e.Error())
+			return nil, fmt.Errorf(e.Error())
+		}
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+type RepoInitOpts struct {
+	ProjectKey string
+	RepoSlug   string
+	Title      string
+}
+
+func (s *RepoService) Init(opts RepoInitOpts) error {
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+	bodyWriter.WriteField("message", "first commit")
+	bodyWriter.WriteField("branch", "main")
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="content"; filename="README.md"`)
+	h.Set("Content-Type", "application/octet-stream")
+	part, err := bodyWriter.CreatePart(h)
+	if err != nil {
+		return err
+	}
+
+	if opts.Title == "" {
+		opts.Title = opts.RepoSlug
+	}
+	content := []byte(fmt.Sprintf("# %s", opts.Title))
+	if _, err := part.Write(content); err != nil {
+		return err
+	}
+	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+
+	//var res string
+	err = requests.URL(s.apiBaseUrl).
+		Method(http.MethodPut).
+		Pathf("/rest/api/1.0/projects/%s/repos/%s/browse/README.md", opts.ProjectKey, opts.RepoSlug).
+		Bearer(s.token).
+		ContentType(contentType).
+		BodyBytes(bodyBuf.Bytes()).
+		//ToString(&res).
+		Fetch(context.Background())
+	if err != nil {
+		var e StatusError
+		if errors.As(err, &e) {
+			return err
 		}
 		return err
 	}
@@ -95,7 +157,7 @@ func (s *RepoService) Create(projectKey string, opts *Repository) error {
 func (s *RepoService) Exists(projectKey, slug string) (bool, error) {
 	err := requests.URL(s.apiBaseUrl).
 		Method(http.MethodGet).
-		Pathf("/rest/api/1.0/%s/repos/%s", projectKey, slug).
+		Pathf("/rest/api/1.0/projects/%s/repos/%s", projectKey, slug).
 		Client(s.client).
 		Bearer(s.token).
 		AddValidator(ErrorHandler(200)).
@@ -103,6 +165,9 @@ func (s *RepoService) Exists(projectKey, slug string) (bool, error) {
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
+			if e.Code == 404 {
+				return false, nil
+			}
 			return false, fmt.Errorf(e.Error())
 		}
 		return false, err

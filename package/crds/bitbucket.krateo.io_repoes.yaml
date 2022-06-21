@@ -12,7 +12,8 @@ spec:
     categories:
     - crossplane
     - managed
-    - git
+    - krateo
+    - bitbucket
     kind: Repo
     listKind: RepoList
     plural: repoes
@@ -20,12 +21,23 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .status.atProvider.project
+      name: PROJECT
+      type: string
+    - jsonPath: .status.atProvider.repoSlug
+      name: SLUG
+      type: string
     - jsonPath: .status.conditions[?(@.type=='Ready')].status
       name: READY
+      priority: 1
       type: string
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
+      priority: 1
       type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -172,11 +184,11 @@ spec:
             properties:
               atProvider:
                 properties:
-                  private:
-                    description: 'Private: whether the repository is private.'
-                    type: boolean
-                  url:
-                    description: 'Url: repository URL.'
+                  project:
+                    description: 'Project: the project key'
+                    type: string
+                  repoSlug:
+                    description: 'RepoSlug: the repository name slug.'
                     type: string
                 type: object
               conditions:
