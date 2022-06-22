@@ -22,7 +22,7 @@ import (
 func main() {
 	var (
 		app            = kingpin.New(filepath.Base(os.Args[0]), "openstack support for Crossplane.").DefaultEnvars()
-		debug          = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
+		debug          = app.Flag("debug", "Run with debug logging.").Short('d').Default("true").Bool()
 		leaderElection = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").OverrideDefaultFromEnvar("LEADER_ELECTION").Bool()
 
 		syncInterval     = app.Flag("sync", "How often all resources will be double-checked for drift from the desired state.").Short('s').Default("1h").Duration()

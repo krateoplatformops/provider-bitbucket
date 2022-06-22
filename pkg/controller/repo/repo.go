@@ -105,15 +105,13 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	spec := cr.Spec.ForProvider.DeepCopy()
-
+	var err error
 	var repo *bitbucket.Repository
 
 	parts := strings.Split(meta.GetExternalName(cr), "/")
 	if len(parts) == 2 {
-		e.log.Debug("External name exists", "value", meta.GetExternalName(cr), "project", parts[0], "slug", parts[1])
-
-		var err error
+		e.log.Debug("External name exists", "value", meta.GetExternalName(cr),
+			"project", parts[0], "repoSlug", parts[1])
 		repo, err = e.cli.Repos().Get(bitbucket.GetRepoOpts{
 			ProjectKey: parts[0],
 			RepoSlug:   parts[1],
@@ -124,8 +122,9 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	if repo != nil {
+		e.log.Debug("Observed repo", "value", fmt.Sprintf("%+v", repo))
+
 		cr.Status.AtProvider = generateObservation(repo)
-		cr.Status.AtProvider.Project = &spec.Project
 
 		cr.Status.SetConditions(xpv1.Available())
 		return managed.ExternalObservation{
@@ -134,11 +133,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	//ok, err := e.cli.Repos().Exists(spec.Project, slug)
-	//if err != nil {
-	//	return managed.ExternalObservation{}, err
-	//}
-
+	spec := cr.Spec.ForProvider.DeepCopy()
 	e.log.Debug("Repo does not exists", "org", spec.Project, "name", spec.Name)
 
 	return managed.ExternalObservation{
@@ -205,6 +200,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 // generateObservation produces a repo observation
 func generateObservation(repo *bitbucket.Repository) v1alpha1.RepoObservation {
 	return v1alpha1.RepoObservation{
+		Project:  helpers.StringPtr(repo.Project.Key),
 		State:    helpers.StringPtr(repo.State),
 		RepoSlug: helpers.StringPtr(repo.Slug),
 	}

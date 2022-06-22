@@ -4,7 +4,8 @@ metadata:
   name: bitbucket-provider-config
 spec:
   apiUrl: http://10.99.99.37:7990
-  verbose: true
+  verbose: false
+  insecure: true
   credentials:
     source: Secret
     secretRef:

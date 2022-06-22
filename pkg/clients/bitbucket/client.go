@@ -48,6 +48,10 @@ type Repository struct {
 	Description string `json:"description,omitempty"`
 	State       string `json:"state,omitempty"`
 	Public      bool   `json:"public"`
+	Project     struct {
+		Key  string `json:"key"`
+		Name string `json:"name"`
+	} `json:"project"`
 }
 
 // RepoService provides methods for creating repositories.
@@ -78,6 +82,7 @@ type GetRepoOpts struct {
 	RepoSlug   string
 }
 
+// https://docs.atlassian.com/bitbucket-server/rest/7.6.13/bitbucket-rest.html#idp175
 func (s *RepoService) Get(opts GetRepoOpts) (*Repository, error) {
 	resp := &Repository{}
 
@@ -103,6 +108,7 @@ func (s *RepoService) Get(opts GetRepoOpts) (*Repository, error) {
 	return resp, nil
 }
 
+// https://docs.atlassian.com/bitbucket-server/rest/7.6.13/bitbucket-rest.html#idp174
 func (s *RepoService) Create(opts CreateRepoOpts) (*Repository, error) {
 	if opts.DefaultBranch == "" {
 		opts.DefaultBranch = "main"
