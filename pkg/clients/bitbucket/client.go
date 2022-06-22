@@ -175,6 +175,7 @@ func (s *RepoService) Init(opts RepoInitOpts) error {
 		Method(http.MethodPut).
 		Pathf("/rest/api/1.0/projects/%s/repos/%s/browse/README.md", opts.ProjectKey, opts.RepoSlug).
 		Bearer(s.token).
+		Client(s.client).
 		ContentType(contentType).
 		BodyBytes(bodyBuf.Bytes()).
 		//ToString(&res).

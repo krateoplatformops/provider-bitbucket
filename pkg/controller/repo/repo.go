@@ -194,7 +194,12 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	projectKey := helpers.StringValue(cr.Status.AtProvider.Project)
 	repoSlug := helpers.StringValue(cr.Status.AtProvider.RepoSlug)
-	return e.cli.Repos().Delete(projectKey, repoSlug)
+	err := e.cli.Repos().Delete(projectKey, repoSlug)
+	if err == nil {
+		e.log.Debug("Repo deleted", "project", projectKey, "slug", repoSlug)
+	}
+
+	return err
 }
 
 // generateObservation produces a repo observation
