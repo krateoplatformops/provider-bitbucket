@@ -2,8 +2,8 @@ package clients
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -17,6 +17,12 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	defaultMaxIdleConnections = 5
+	defaultResponseTimeout    = 30 * time.Second
+	defaultConnectionTimeout  = 15 * time.Second
 )
 
 // GetConfig constructs a CreateOpts configuration that
@@ -62,14 +68,30 @@ func UseProviderConfig(ctx context.Context, k client.Client, mg resource.Managed
 		ApiBaseUrl: pc.Spec.ApiUrl,
 		Token:      token,
 	}
-	opts.HttpClient = defaultClient()
+
+	transport := http.DefaultTransport
+
+	insecure := helpers.BoolValue(helpers.BoolOrDefault(pc.Spec.Insecure, false))
+	if insecure {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		transport = &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			TLSClientConfig:       tlsConfig,
+			MaxIdleConnsPerHost:   defaultMaxIdleConnections,
+			ResponseHeaderTimeout: defaultResponseTimeout,
+		}
+	}
 
 	verbose := helpers.IsBoolPtrEqualToBool(pc.Spec.Verbose, true)
 	if verbose {
-		opts.HttpClient = &http.Client{
-			Transport: &verboseTracer{http.DefaultTransport},
-			Timeout:   50 * time.Second,
-		}
+		transport = &verboseTracer{transport}
+	}
+
+	opts.HttpClient = &http.Client{
+		Transport: transport,
+		Timeout:   defaultConnectionTimeout + defaultResponseTimeout,
 	}
 
 	return opts, nil
@@ -112,24 +134,4 @@ func (t *verboseTracer) RoundTrip(req *http.Request) (*http.Response, error) {
 	os.Stderr.Write([]byte{'\n'})
 
 	return resp, err
-}
-
-const (
-	defaultMaxIdleConnections = 5
-	defaultResponseTimeout    = 30 * time.Second
-	defaultConnectionTimeout  = 15 * time.Second
-)
-
-// defaultClient returns a new http.Client.
-func defaultClient() *http.Client {
-	return &http.Client{
-		Timeout: defaultConnectionTimeout + defaultResponseTimeout,
-		Transport: &http.Transport{
-			MaxIdleConnsPerHost:   defaultMaxIdleConnections,
-			ResponseHeaderTimeout: defaultResponseTimeout,
-			DialContext: (&net.Dialer{
-				Timeout: defaultConnectionTimeout,
-			}).DialContext,
-		},
-	}
 }

@@ -28,6 +28,10 @@ type ProviderConfigSpec struct {
 	// Verbose is true dumps your client requests and responses.
 	// +optional
 	Verbose *bool `json:"verbose,omitempty"`
+
+	// Insecure is useful with hand made SSL certs (default: false)
+	// +optional
+	Insecure *bool `json:"insecure,omitempty"`
 }
 
 // A ProviderConfigStatus reflects the observed state of a ProviderConfig.
