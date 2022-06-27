@@ -220,6 +220,7 @@ type UserPermissionOpts struct {
 	Permission string
 }
 
+// https://docs.atlassian.com/bitbucket-server/rest/7.6.13/bitbucket-rest.html#idp286
 func (s *RepoService) SetUserPermissions(opts UserPermissionOpts) error {
 	err := requests.URL(s.apiBaseUrl).
 		Method(http.MethodPut).
