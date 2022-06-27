@@ -105,6 +105,9 @@ spec:
                 description: 'Insecure is useful with hand made SSL certs (default:
                   false)'
                 type: boolean
+              username:
+                description: 'Username: specify this if you want to use basic auth'
+                type: string
               verbose:
                 description: Verbose is true dumps your client requests and responses.
                 type: boolean

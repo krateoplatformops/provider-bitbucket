@@ -17,6 +17,10 @@ type Credentials struct {
 
 // A ProviderConfigSpec defines the desired state of a ProviderConfig.
 type ProviderConfigSpec struct {
+	// Username: specify this if you want to use basic auth
+	// +optional
+	Username *string `json:"username,omitempty"`
+
 	// ApiUrl: the baseUrl for the REST API provider.
 	// +optional
 	// +immutable

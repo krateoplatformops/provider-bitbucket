@@ -109,7 +109,7 @@ install.crossplane: ## Install Crossplane into the local KinD cluster
 install.provider: ## Install this provider
 	@$(SED) 's/VERSION/$(VERSION)/g' ./examples/provider.yaml | $(KUBECTL) apply -f -
 
-.PHONY: example.secrets
+.PHONY: example.secret
 example.secret: ## Create the example secrets
 	@$(KUBECTL) create secret generic bitbucket-secret --from-literal=token=$(BITBUCKET_SECRET) || true
 

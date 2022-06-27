@@ -14,6 +14,7 @@ import (
 
 type ClientOpts struct {
 	ApiBaseUrl string
+	Username   string
 	Token      string
 	HttpClient *http.Client
 }
@@ -32,7 +33,12 @@ func NewClient(opts *ClientOpts) *Client {
 		httpClient: opts.HttpClient,
 	}
 
-	res.repos = newRepoService(res.httpClient, res.apiBaseUrl, opts.Token)
+	res.repos = &RepoService{
+		client:     res.httpClient,
+		apiBaseUrl: res.apiBaseUrl,
+		username:   opts.Username,
+		token:      opts.Token,
+	}
 
 	return res
 }
@@ -58,16 +64,8 @@ type Repository struct {
 type RepoService struct {
 	client     *http.Client
 	apiBaseUrl string
+	username   string
 	token      string
-}
-
-// newRepoService returns a new RepoService.
-func newRepoService(httpClient *http.Client, apiBaseUrl, token string) *RepoService {
-	return &RepoService{
-		client:     httpClient,
-		apiBaseUrl: apiBaseUrl,
-		token:      token,
-	}
 }
 
 type CreateRepoOpts struct {
@@ -86,14 +84,19 @@ type GetRepoOpts struct {
 func (s *RepoService) Get(opts GetRepoOpts) (*Repository, error) {
 	resp := &Repository{}
 
-	err := requests.URL(s.apiBaseUrl).
+	builder := requests.URL(s.apiBaseUrl).
 		Method(http.MethodGet).
 		Pathf("/rest/api/1.0/projects/%s/repos/%s", opts.ProjectKey, opts.RepoSlug).
 		Client(s.client).
-		Bearer(s.token).
 		AddValidator(ErrorHandler(200)).
-		ToJSON(resp).
-		Fetch(context.Background())
+		ToJSON(resp)
+	if len(s.username) > 0 {
+		builder = builder.BasicAuth(s.username, s.token)
+	} else {
+		builder = builder.Bearer(s.token)
+	}
+
+	err := builder.Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
@@ -116,19 +119,23 @@ func (s *RepoService) Create(opts CreateRepoOpts) (*Repository, error) {
 
 	resp := &Repository{}
 
-	err := requests.URL(s.apiBaseUrl).
+	builder := requests.URL(s.apiBaseUrl).
 		Method(http.MethodPost).
 		Pathf("/rest/api/1.0/projects/%s/repos", opts.ProjectKey).
 		Client(s.client).
-		Bearer(s.token).
 		BodyJSON(map[string]interface{}{
 			"name":          opts.Name,
 			"public":        opts.Public,
 			"defaultBranch": opts.DefaultBranch,
 		}).
 		AddValidator(ErrorHandler(201)).
-		ToJSON(resp).
-		Fetch(context.Background())
+		ToJSON(resp)
+	if len(s.username) > 0 {
+		builder = builder.BasicAuth(s.username, s.token)
+	} else {
+		builder = builder.Bearer(s.token)
+	}
+	err := builder.Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
@@ -171,15 +178,18 @@ func (s *RepoService) Init(opts RepoInitOpts) error {
 	bodyWriter.Close()
 
 	//var res string
-	err = requests.URL(s.apiBaseUrl).
+	builder := requests.URL(s.apiBaseUrl).
 		Method(http.MethodPut).
 		Pathf("/rest/api/1.0/projects/%s/repos/%s/browse/README.md", opts.ProjectKey, opts.RepoSlug).
-		Bearer(s.token).
 		Client(s.client).
 		ContentType(contentType).
-		BodyBytes(bodyBuf.Bytes()).
-		//ToString(&res).
-		Fetch(context.Background())
+		BodyBytes(bodyBuf.Bytes())
+	if len(s.username) > 0 {
+		builder = builder.BasicAuth(s.username, s.token)
+	} else {
+		builder = builder.Bearer(s.token)
+	}
+	err = builder.Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
@@ -192,13 +202,17 @@ func (s *RepoService) Init(opts RepoInitOpts) error {
 }
 
 func (s *RepoService) Delete(projectKey, slug string) error {
-	err := requests.URL(s.apiBaseUrl).
+	builder := requests.URL(s.apiBaseUrl).
 		Method(http.MethodDelete).
 		Pathf("/rest/api/1.0/projects/%s/repos/%s", projectKey, slug).
 		Client(s.client).
-		Bearer(s.token).
-		AddValidator(ErrorHandler(200, 202, 204)).
-		Fetch(context.Background())
+		AddValidator(ErrorHandler(200, 202, 204))
+	if len(s.username) > 0 {
+		builder = builder.BasicAuth(s.username, s.token)
+	} else {
+		builder = builder.Bearer(s.token)
+	}
+	err := builder.Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
@@ -222,14 +236,19 @@ type UserPermissionOpts struct {
 
 // https://docs.atlassian.com/bitbucket-server/rest/7.6.13/bitbucket-rest.html#idp286
 func (s *RepoService) SetUserPermissions(opts UserPermissionOpts) error {
-	err := requests.URL(s.apiBaseUrl).
+	builder := requests.URL(s.apiBaseUrl).
 		Method(http.MethodPut).
 		Pathf("/rest/api/1.0/projects/%s/repos/%s/permissions/users", opts.ProjectKey, opts.RepoSlug).
 		Param("name", opts.User).Param("permission", opts.Permission).
 		Client(s.client).
-		Bearer(s.token).
-		AddValidator(ErrorHandler(200, 204)).
-		Fetch(context.Background())
+		AddValidator(ErrorHandler(200, 204))
+	if len(s.username) > 0 {
+		builder = builder.BasicAuth(s.username, s.token)
+	} else {
+		builder = builder.Bearer(s.token)
+	}
+
+	err := builder.Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
@@ -256,15 +275,20 @@ func (s *RepoService) GetUserPermissions(opts UserPermissionOpts) (*UserPermissi
 		Values []UserPermission `json:"values,omitempty"`
 	}{}
 
-	err := requests.URL(s.apiBaseUrl).
+	builder := requests.URL(s.apiBaseUrl).
 		Method(http.MethodGet).
 		Pathf("/rest/api/1.0/projects/%s/repos/%s/permissions/users", opts.ProjectKey, opts.RepoSlug).
 		Param("filter", opts.User).
 		Client(s.client).
-		Bearer(s.token).
 		AddValidator(ErrorHandler(200)).
-		ToJSON(&res).
-		Fetch(context.Background())
+		ToJSON(&res)
+	if len(s.username) > 0 {
+		builder = builder.BasicAuth(s.username, s.token)
+	} else {
+		builder = builder.Bearer(s.token)
+	}
+
+	err := builder.Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {
@@ -283,14 +307,19 @@ func (s *RepoService) GetUserPermissions(opts UserPermissionOpts) (*UserPermissi
 }
 
 func (s *RepoService) DeleteUserPermissions(opts UserPermissionOpts) error {
-	err := requests.URL(s.apiBaseUrl).
+	builder := requests.URL(s.apiBaseUrl).
 		Method(http.MethodDelete).
 		Pathf("/rest/api/1.0/projects/%s/repos/%s/permissions/users", opts.ProjectKey, opts.RepoSlug).
 		Param("name", opts.User).
 		Client(s.client).
-		Bearer(s.token).
-		AddValidator(ErrorHandler(200, 204)).
-		Fetch(context.Background())
+		AddValidator(ErrorHandler(200, 204))
+	if len(s.username) > 0 {
+		builder = builder.BasicAuth(s.username, s.token)
+	} else {
+		builder = builder.Bearer(s.token)
+	}
+
+	err := builder.Fetch(context.Background())
 	if err != nil {
 		var e StatusError
 		if errors.As(err, &e) {

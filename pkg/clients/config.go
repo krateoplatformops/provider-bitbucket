@@ -66,6 +66,7 @@ func UseProviderConfig(ctx context.Context, k client.Client, mg resource.Managed
 
 	opts := &bitbucket.ClientOpts{
 		ApiBaseUrl: pc.Spec.ApiUrl,
+		Username:   helpers.StringValue(pc.Spec.Username),
 		Token:      token,
 	}
 
