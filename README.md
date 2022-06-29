@@ -33,6 +33,8 @@ You can found example manifest files here:
 
 ---
 
+
+
 ## Report a Bug
 
 For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/krateoplatformops/provider-git/issues).
