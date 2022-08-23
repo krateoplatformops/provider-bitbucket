@@ -32,6 +32,7 @@ const (
 
 	reasonCannotCreate = "CannotCreateExternalResource"
 	reasonCreated      = "CreatedExternalResource"
+	reasonDeleted      = "DeletedExternalResource"
 )
 
 // Setup adds a controller that reconciles Token managed resources.
@@ -40,16 +41,18 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 
 	log := o.Logger.WithValues("controller", name)
 
+	recorder := mgr.GetEventRecorderFor(name)
+
 	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(v1alpha1.RepoGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
 			kube:     mgr.GetClient(),
 			log:      log,
-			recorder: mgr.GetEventRecorderFor(name),
+			recorder: recorder,
 			clientFn: bitbucket.NewClient,
 		}),
 		managed.WithLogger(log),
-		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
+		managed.WithRecorder(event.NewAPIRecorder(recorder)))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -162,7 +165,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, err
 	}
 	e.log.Debug("Repo created", "project", spec.Project, "name", spec.Name, "slug", res.Slug)
-	e.rec.Event(cr, corev1.EventTypeNormal, reasonCreated, fmt.Sprintf("Repo '%s/%s' created", spec.Project, spec.Name))
+	e.rec.Eventf(cr, corev1.EventTypeNormal, reasonCreated, "Repo '%s/%s' created", spec.Project, spec.Name)
 
 	err = repos.Init(bitbucket.RepoInitOpts{
 		ProjectKey: spec.Project,
@@ -173,7 +176,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, err
 	}
 	e.log.Debug("Repo initialized", "project", spec.Project, "name", spec.Name, "slug", res.Slug)
-	e.rec.Event(cr, corev1.EventTypeNormal, reasonCreated, fmt.Sprintf("Repo '%s/%s' initialized", spec.Project, spec.Name))
+	e.rec.Eventf(cr, corev1.EventTypeNormal, reasonCreated, "Repo '%s/%s' initialized", spec.Project, spec.Name)
 
 	meta.SetExternalName(cr, fmt.Sprintf("%s/%s", spec.Project, res.Slug))
 
@@ -197,6 +200,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	err := e.cli.Repos().Delete(projectKey, repoSlug)
 	if err == nil {
 		e.log.Debug("Repo deleted", "project", projectKey, "slug", repoSlug)
+		e.rec.Eventf(cr, corev1.EventTypeNormal, reasonDeleted, "Repo '%s/%s' deleted", projectKey, repoSlug)
 	}
 
 	return err
