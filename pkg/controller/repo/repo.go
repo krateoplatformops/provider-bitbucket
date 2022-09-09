@@ -158,7 +158,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	repos := e.cli.Repos()
 	res, err := repos.Create(bitbucket.CreateRepoOpts{
 		Name:       spec.Name,
-		Public:     !spec.Private,
+		Public:     !helpers.BoolValueOrDefault(spec.Private, false),
 		ProjectKey: spec.Project,
 	})
 	if err != nil {
@@ -167,16 +167,18 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	e.log.Debug("Repo created", "project", spec.Project, "name", spec.Name, "slug", res.Slug)
 	e.rec.Eventf(cr, corev1.EventTypeNormal, reasonCreated, "Repo '%s/%s' created", spec.Project, spec.Name)
 
-	err = repos.Init(bitbucket.RepoInitOpts{
-		ProjectKey: spec.Project,
-		RepoSlug:   res.Slug,
-		Title:      res.Description,
-	})
-	if err != nil {
-		return managed.ExternalCreation{}, err
+	if helpers.BoolValueOrDefault(spec.Initialize, true) {
+		err = repos.Init(bitbucket.RepoInitOpts{
+			ProjectKey: spec.Project,
+			RepoSlug:   res.Slug,
+			Title:      res.Description,
+		})
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		e.log.Debug("Repo initialized", "project", spec.Project, "name", spec.Name, "slug", res.Slug)
+		e.rec.Eventf(cr, corev1.EventTypeNormal, reasonCreated, "Repo '%s/%s' initialized", spec.Project, spec.Name)
 	}
-	e.log.Debug("Repo initialized", "project", spec.Project, "name", spec.Name, "slug", res.Slug)
-	e.rec.Eventf(cr, corev1.EventTypeNormal, reasonCreated, "Repo '%s/%s' initialized", spec.Project, spec.Name)
 
 	meta.SetExternalName(cr, fmt.Sprintf("%s/%s", spec.Project, res.Slug))
 

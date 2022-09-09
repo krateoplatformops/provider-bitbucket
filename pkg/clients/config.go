@@ -72,7 +72,7 @@ func UseProviderConfig(ctx context.Context, k client.Client, mg resource.Managed
 
 	transport := http.DefaultTransport
 
-	insecure := helpers.BoolValue(helpers.BoolOrDefault(pc.Spec.Insecure, false))
+	insecure := helpers.BoolValueOrDefault(pc.Spec.Insecure, false)
 	if insecure {
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: true,
