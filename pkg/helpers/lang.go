@@ -64,10 +64,10 @@ func BoolValue(v *bool) bool {
 // BoolValueOrDefault sets eventually a default value for bool type.
 func BoolValueOrDefault(v *bool, def bool) bool {
 	if v == nil {
-		return false
+		return def
 	}
 
-	return def
+	return *v
 }
 
 // StringPtr converts the supplied string to a pointer to that string.
