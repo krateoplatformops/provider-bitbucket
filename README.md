@@ -2,11 +2,10 @@
 
 ## Overview
 
-This is a Kubernetes Operator (Crossplane provider) that creates a Bitbucket repository.
+This is a Kubernetes Operator (Crossplane provider) that:
 
-The provider that is built from the source code in this repository adds the following new functionality:
-
-- a Custom Resource Definition (CRD) that model bitbucket repositories
+- create and delete Bitbucket repositories
+- manage Bitbucket user permissions
 
 ## Getting Started
 
@@ -20,21 +19,77 @@ $ helm install crossplane --namespace crossplane-system crossplane-stable/crossp
 
 ### Install this provider
 
-Before installing the below manifest:
+Install the below manifest:
 
-- [replace `VERSION` with latest or your preferred provider version](./examples/provider.yaml)
+```sh
+cat <<EOF | kubectl apply -f -
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: crossplane-provider-bitbucket
+spec:
+  package: 'ghcr.io/krateoplatformops/provider-bitbucket:VERSION'
+  packagePullPolicy: IfNotPresent
+EOF
+```
 
-### Configure the `Repo` CRD instance
+!!! note ""
 
-You can found example manifest files here:
+   replace `VERSION` with [latest provider tag](https://github.com/krateoplatformops/provider-bitbucket/tags)
 
-- provider config [config.yaml](./examples/config.yaml)
-- crd instance [example.yaml](./examples/example.yaml)
+### Configure the provider
 
----
+```sh
+cat <<EOF | kubectl apply -f -
+apiVersion: bitbucket.krateo.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: bitbucket-provider-config
+spec:
+  apiUrl: http://10.99.99.37:7990
+  verbose: true
+  insecure: true
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: default
+      name: bitbucket-secret
+      key: token
+EOF
+```
 
+### Configuring the `Repo` custom resource
 
+```sh
+cat <<EOF | kubectl apply -f -
+apiVersion: bitbucket.krateo.io/v1alpha1
+kind: Repo
+metadata:
+  name: bitbucket-provider-example
+spec:
+  forProvider:
+    project: JXP
+    name: demo-repo
+    private: true
+  providerConfigRef:
+    name: bitbucket-provider-config
+EOF
+```
 
-## Report a Bug
+### Configuring the `RepoPermissionUser` custom resource
 
-For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/krateoplatformops/provider-git/issues).
+```sh
+cat <<EOF | kubectl apply -f -
+apiVersion: bitbucket.krateo.io/v1alpha1
+kind: Repo
+metadata:
+  name: bitbucket-provider-example
+spec:
+  forProvider:
+    project: JXP
+    name: demo-repo
+    private: true
+  providerConfigRef:
+    name: bitbucket-provider-config
+EOF
+```
